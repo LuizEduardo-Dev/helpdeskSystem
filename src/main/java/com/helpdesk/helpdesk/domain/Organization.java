@@ -1,10 +1,11 @@
 package com.helpdesk.helpdesk.domain;
 
-import jakarta.persistence.Entity;
+import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 @Entity
+@Table(name = "organizations")
 @Data
 @EqualsAndHashCode(of = "id")
 
