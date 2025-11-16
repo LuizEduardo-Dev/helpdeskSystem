@@ -9,7 +9,7 @@ A complete HelpDesk (Software as a Service) system for call, customer and techni
 
 ---
 
-## 📋 Índice
+## 📋 Index
 
 * [About the project](#about-the=project)
 * [Functionalities](#functionalities)
