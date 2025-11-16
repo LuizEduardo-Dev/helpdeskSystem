@@ -1,9 +1,9 @@
-# 🚀 Projeto HelpDesk SaaS
+# 🚀 HelpDesk SaaS Project
 
-![Badge de Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)
-![Badge do Java](https://img.shields.io/badge/Java-21-blue.svg)
-![Badge do Spring](https://img.shields.io/badge/Spring%20Boot-3.x-green.svg)
-![Badge do Angular](https://img.shields.io/badge/Angular-18-red.svg)
+![Badge Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)
+![Badge Java](https://img.shields.io/badge/Java-21-blue.svg)
+![Badge Spring](https://img.shields.io/badge/Spring%20Boot-3.x-green.svg)
+![Badge Angular](https://img.shields.io/badge/Angular-18-red.svg)
 
 A complete HelpDesk (Software as a Service) system for call, customer and technical management. This project is divided into a backend (API REST) built with Spring Boot and a frontend (SPA) built with Angular.
 
