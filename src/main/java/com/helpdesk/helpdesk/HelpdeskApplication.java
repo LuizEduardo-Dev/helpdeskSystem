@@ -13,11 +13,8 @@ public class HelpdeskApplication {
 		SpringApplication.run(HelpdeskApplication.class, args);
 	}
 
-	// --- COLE ESTE BLOCO DE CÓDIGO ---
-	/**
-	 * Este componente "ouve" o evento de quando o servidor web
-	 * (Tomcat) está pronto e inicializado.
-	 */
+
+
 	@Component
 	class WebServerListener {
 
@@ -32,11 +29,11 @@ public class HelpdeskApplication {
 
 			// Imprimimos a mensagem customizada no console
 			System.out.println("==================================================");
-			System.out.println("🚀 SERVIDOR HELP DESK NO AR! 🚀");
+			System.out.println("SERVIDOR HELP DESK NO AR!");
 			System.out.println("Disponível em: http://localhost:" + port);
 			System.out.println("==================================================");
 		}
 	}
-	// --- FIM DO BLOCO ---
+
 
 }

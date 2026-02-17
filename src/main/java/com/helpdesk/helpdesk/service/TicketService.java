@@ -80,15 +80,11 @@ public class TicketService {
      * Busca todos os tickets cadastrados.
      * @return Uma lista de DTOs de resposta.
      */
-    @Transactional(readOnly = true) // readOnly = true é uma otimização para consultas
-    public List<TicketResponseDTO> getAllTickets() {
-        // 1. Busca todos os tickets (entidades) do banco
-        List<Ticket> tickets = ticketRepository.findAll();
-
-        // 2. Converte a lista de Entidades para uma lista de DTOs
-        return tickets.stream() // Usa a Stream API do Java
-                .map(TicketResponseDTO::new) // Para cada ticket, cria um new TicketResponseDTO(ticket)
-                .collect(Collectors.toList()); // Coleta tudo em uma nova lista
+    @Transactional(readOnly = true)
+    public List<TicketResponseDTO> getAllTickets(Long orgId) {
+        // Agora filtramos no banco apenas os tickets daquela empresa
+        List<Ticket> tickets = ticketRepository.findAllByOrganizationId(orgId);
+        return tickets.stream().map(TicketResponseDTO::new).collect(Collectors.toList());
     }
 
     /**
@@ -97,12 +93,10 @@ public class TicketService {
      * @return O DTO de resposta do ticket.
      */
     @Transactional(readOnly = true)
-    public TicketResponseDTO getTicketById(Long id) {
-        // 1. Busca o ticket no banco ou lança um erro se não encontrar
-        Ticket ticket = ticketRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Ticket com ID " + id + " não encontrado."));
-
-        // 2. Converte a entidade para o DTO de resposta
+    public TicketResponseDTO getTicketById(Long id, Long orgId) {
+        // Se o ID existir mas for de outra empresa, retornamos 404 (segurança por obscuridade)
+        Ticket ticket = ticketRepository.findByIdAndOrganizationId(id, orgId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket não encontrado nesta organização."));
         return new TicketResponseDTO(ticket);
     }
     /**
@@ -113,22 +107,15 @@ public class TicketService {
      * @return O DTO de resposta com o ticket atualizado.
      */
     @Transactional
-    public TicketResponseDTO updateTicket(Long ticketId, TicketUpdateDTO updateDTO, Long updatingUserId) {
-
-        // 1. Buscar o usuário que está realizando a ação
-        User updatingUser = userRepository.findById(updatingUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário " + updatingUserId + " não encontrado."));
-
-        // 2. REGRA DE NEGÓCIO (Segurança): Verificar se o usuário é um técnico
+    public TicketResponseDTO updateTicket(Long ticketId, TicketUpdateDTO updateDTO, User updatingUser) {
+        // 1. Validamos se o usuário é técnico (já tínhamos essa regra)
         if (!"ROLE_TECH".equals(updatingUser.getRole().getName())) {
-            throw new AccessDeniedException("Acesso negado: Somente técnicos podem atualizar chamados.");
-            // No futuro, isso será uma exceção de acesso negado (403 Forbidden)
+            throw new AccessDeniedException("Somente técnicos podem atualizar chamados.");
         }
 
-        // 3. Buscar o ticket que será atualizado
-        Ticket ticket = ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new ResourceNotFoundException("Ticket " + ticketId + " não encontrado."));
-
+        // 2. Buscamos o ticket garantindo que pertence à mesma organização do técnico
+        Ticket ticket = ticketRepository.findByIdAndOrganizationId(ticketId, updatingUser.getOrganization().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket não encontrado ou acesso negado."));
         // 4. Atualizar os campos, se eles foram fornecidos no DTO
 
         // Se um novo statusId foi enviado...
