@@ -3,6 +3,7 @@ package com.helpdesk.helpdesk.security;
 import com.helpdesk.helpdesk.domain.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct; // Importe o PostConstruct
 import org.springframework.beans.factory.annotation.Value;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Date;
 import java.util.function.Function;
 
@@ -24,21 +26,24 @@ public class TokenService {
 
     private SecretKey signingKey;
 
+
     @PostConstruct
     public void init() {
-        // Otimização: Gera a chave uma única vez na inicialização do sistema
-        this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+
+        byte[] keyBytes = Decoders.BASE64.decode(secret);
+        this.signingKey = Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String generateToken(User user) {
+        Instant now = Instant.now();
         return Jwts.builder()
                 .subject(user.getEmail())
                 .claim("userId", user.getId())
                 .claim("organizationId", user.getOrganization().getId())
                 .claim("role", user.getRole().getName())
-                .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(signingKey) // O JJWT 0.12.5 já usa HS256 por padrão para chaves HMAC
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(now.plusMillis(expiration)))
+                .signWith(signingKey, Jwts.SIG.HS256)
                 .compact();
     }
 

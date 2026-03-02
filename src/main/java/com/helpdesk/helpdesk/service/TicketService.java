@@ -1,6 +1,7 @@
 package com.helpdesk.helpdesk.service;
 
 import com.helpdesk.helpdesk.domain.*;
+import com.helpdesk.helpdesk.dto.TicketAuditResponseDTO;
 import com.helpdesk.helpdesk.dto.TicketCreateDTO;
 import com.helpdesk.helpdesk.dto.TicketResponseDTO;
 import com.helpdesk.helpdesk.dto.TicketUpdateDTO;
@@ -13,134 +14,131 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
-
-
-@Service // Marca a classe como um "Serviço" gerenciado pelo Spring.
+@Service
 public class TicketService {
-
-    // --- Injeção de Dependência ---
-    // Pedimos ao Spring para "injetar" as instâncias dos repositórios que criamos.
 
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
     private final PriorityRepository priorityRepository;
     private final StatusRepository statusRepository;
+    private final TicketAuditRepository auditRepository;
 
-    @Autowired // Informa ao Spring para injetar as dependências via construtor (melhor prática)
+    @Autowired
     public TicketService(TicketRepository ticketRepository,
                          UserRepository userRepository,
                          PriorityRepository priorityRepository,
-                         StatusRepository statusRepository) {
+                         StatusRepository statusRepository,
+                         TicketAuditRepository auditRepository) {
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;
         this.priorityRepository = priorityRepository;
         this.statusRepository = statusRepository;
+        this.auditRepository = auditRepository;
     }
 
-    /**
-     * Lógica de negócio para criar um novo chamado.
-     * @param createDTO O DTO com os dados de entrada.
-     * @param creatingUserId O ID do usuário logado (que virá do Spring Security no futuro).
-     * @return O DTO de resposta com o ticket criado.
-     */
-    @Transactional // Garante que a operação inteira seja atômica (ou tudo funciona, ou nada é salvo).
+    @Transactional
     public TicketResponseDTO createTicket(TicketCreateDTO createDTO, Long creatingUserId) {
 
-        // 1. Buscar as entidades relacionadas no banco de dados
-        //    Usamos .orElseThrow() para lançar um erro se o ID não for encontrado.
+        // 1. Correção: Trocado RuntimeException por ResourceNotFoundException
         User creatingUser = userRepository.findById(creatingUserId)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado com ID: " + creatingUserId));
 
         Priority priority = priorityRepository.findById(createDTO.getPriorityId())
-                .orElseThrow(() -> new RuntimeException("Prioridade não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Prioridade não encontrada com ID: " + createDTO.getPriorityId()));
 
-        // Regra de Negócio: Todo novo ticket começa como "Aberto"
-        // (Estamos "hardcoding" o ID 1, mas o ideal seria um método no repositório)
         Status openStatus = statusRepository.findByName("Aberto")
-                .orElseThrow(() -> new RuntimeException("Status 'Aberto' não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Status padrão 'Aberto' não configurado no sistema."));
 
-        // 2. Criar a nova entidade Ticket
         Ticket newTicket = new Ticket();
         newTicket.setTitle(createDTO.getTitle());
         newTicket.setDescription(createDTO.getDescription());
         newTicket.setPriority(priority);
         newTicket.setStatus(openStatus);
         newTicket.setCreatedBy(creatingUser);
-        newTicket.setOrganization(creatingUser.getOrganization()); // A organização do ticket é a mesma do usuário
-        // assignedTo fica nulo por padrão
+        newTicket.setOrganization(creatingUser.getOrganization());
 
-        // 3. Salvar o novo ticket no banco de dados
         Ticket savedTicket = ticketRepository.save(newTicket);
-
-        // 4. Mapear a entidade salva para o nosso DTO de resposta e retornar
-
         return new TicketResponseDTO(savedTicket);
     }
-    /**
-     * Busca todos os tickets cadastrados.
-     * @return Uma lista de DTOs de resposta.
-     */
+
     @Transactional(readOnly = true)
     public List<TicketResponseDTO> getAllTickets(Long orgId) {
-        // Agora filtramos no banco apenas os tickets daquela empresa
-        List<Ticket> tickets = ticketRepository.findAllByOrganizationId(orgId);
-        return tickets.stream().map(TicketResponseDTO::new).collect(Collectors.toList());
+        return ticketRepository.findAllByOrganizationId(orgId)
+                .stream()
+                .map(TicketResponseDTO::new)
+                .collect(Collectors.toList()); // Simplificado para chaining
     }
 
-    /**
-     * Busca um ticket específico pelo ID.
-     * @param id O ID do ticket a ser buscado.
-     * @return O DTO de resposta do ticket.
-     */
     @Transactional(readOnly = true)
     public TicketResponseDTO getTicketById(Long id, Long orgId) {
-        // Se o ID existir mas for de outra empresa, retornamos 404 (segurança por obscuridade)
         Ticket ticket = ticketRepository.findByIdAndOrganizationId(id, orgId)
-                .orElseThrow(() -> new ResourceNotFoundException("Ticket não encontrado nesta organização."));
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket não encontrado ou acesso negado."));
         return new TicketResponseDTO(ticket);
     }
-    /**
-     * Atualiza o status e/ou o técnico atribuído de um chamado.
-     * @param ticketId O ID do ticket a ser atualizado.
-     * @param updateDTO O DTO com os novos dados (statusId e/ou assignedToId).
-     * @param updatingUserId O ID do usuário que está realizando a operação.
-     * @return O DTO de resposta com o ticket atualizado.
-     */
+
     @Transactional
     public TicketResponseDTO updateTicket(Long ticketId, TicketUpdateDTO updateDTO, User updatingUser) {
-        // 1. Validamos se o usuário é técnico (já tínhamos essa regra)
+
         if (!"ROLE_TECH".equals(updatingUser.getRole().getName())) {
             throw new AccessDeniedException("Somente técnicos podem atualizar chamados.");
         }
 
-        // 2. Buscamos o ticket garantindo que pertence à mesma organização do técnico
         Ticket ticket = ticketRepository.findByIdAndOrganizationId(ticketId, updatingUser.getOrganization().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket não encontrado ou acesso negado."));
-        // 4. Atualizar os campos, se eles foram fornecidos no DTO
 
-        // Se um novo statusId foi enviado...
+        // 2. Lógica de Auditoria para STATUS
         if (updateDTO.getStatusId() != null) {
+            String oldStatusName = ticket.getStatus().getName(); // Captura o valor antigo
+
             Status newStatus = statusRepository.findById(updateDTO.getStatusId())
-                    .orElseThrow(() -> new RuntimeException("Status " + updateDTO.getStatusId() + " não encontrado."));
-            ticket.setStatus(newStatus);
+                    .orElseThrow(() -> new ResourceNotFoundException("Status " + updateDTO.getStatusId() + " não encontrado."));
+
+            System.out.println("DEBUG: Tentando auditar. Antigo: " + oldStatusName + " | Novo: " + newStatus.getName());
+
+            // Só audita se o valor realmente mudou
+            if (!oldStatusName.equals(newStatus.getName())) {
+                ticket.setStatus(newStatus);
+                saveAudit(ticket, updatingUser, "status", oldStatusName, newStatus.getName());
+            }
         }
 
-        // Se um novo assignedToId foi enviado...
+        // 3. Lógica de Auditoria para ASSIGNED_TO (Técnico Atribuído)
         if (updateDTO.getAssignedToId() != null) {
-            User assignedUser = userRepository.findById(updateDTO.getAssignedToId())
-                    .orElseThrow(() -> new RuntimeException("Técnico " + updateDTO.getAssignedToId() + " não encontrado."));
+            String oldAssignedEmail = (ticket.getAssignedTo() != null) ? ticket.getAssignedTo().getEmail() : "Nenhum";
 
-            // Verificação extra: O usuário sendo atribuído também é um técnico?
+            User assignedUser = userRepository.findById(updateDTO.getAssignedToId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Técnico " + updateDTO.getAssignedToId() + " não encontrado."));
+
             if (!"ROLE_TECH".equals(assignedUser.getRole().getName())) {
                 throw new AccessDeniedException("Erro: Só é possível atribuir chamados a técnicos.");
             }
-            ticket.setAssignedTo(assignedUser);
+
+            if (!oldAssignedEmail.equals(assignedUser.getEmail())) {
+                ticket.setAssignedTo(assignedUser);
+                saveAudit(ticket, updatingUser, "assigned_to", oldAssignedEmail, assignedUser.getEmail());
+            }
         }
 
-        // 5. Salvar o ticket atualizado (o @PreUpdate irá atualizar o updatedAt automaticamente)
-        Ticket updatedTicket = ticketRepository.save(ticket);
+        return new TicketResponseDTO(ticket);
+    }
 
-        // 6. Retornar o DTO de resposta
-        return new TicketResponseDTO(updatedTicket);
+    @Transactional(readOnly = true)
+    public List<TicketAuditResponseDTO> getTicketHistory(Long ticketId, Long orgId) {
+        // Garantimos que o ticket pertence à organização do usuário logado
+        ticketRepository.findByIdAndOrganizationId(ticketId, orgId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket não encontrado nesta organização."));
+
+        // Buscamos as auditorias ordenadas pela mais recente
+        return auditRepository.findAllByTicketIdOrderByCreatedAtDesc(ticketId)
+                .stream()
+                .map(TicketAuditResponseDTO::new)
+                .collect(Collectors.toList());
+    }
+
+
+    private void saveAudit(Ticket ticket, User user, String field, String oldValue, String newValue) {
+        System.out.println("DEBUG: Salvando auditoria no banco...");
+        TicketAudit audit = new TicketAudit(ticket, user, field, oldValue, newValue);
+        auditRepository.save(audit);
     }
 }

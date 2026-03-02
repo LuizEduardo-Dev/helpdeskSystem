@@ -1,6 +1,7 @@
 package com.helpdesk.helpdesk.controller;
 
 import com.helpdesk.helpdesk.domain.User;
+import com.helpdesk.helpdesk.dto.TicketAuditResponseDTO;
 import com.helpdesk.helpdesk.dto.TicketCreateDTO;
 import com.helpdesk.helpdesk.dto.TicketResponseDTO;
 import com.helpdesk.helpdesk.dto.TicketUpdateDTO;
@@ -47,6 +48,15 @@ public class TicketController {
             @AuthenticationPrincipal User user) {
         TicketResponseDTO ticket = ticketService.getTicketById(id, user.getOrganization().getId());
         return ResponseEntity.ok(ticket);
+    }
+
+    @GetMapping("/{id}/history")
+    public ResponseEntity<List<TicketAuditResponseDTO>> getTicketHistory(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+
+        List<TicketAuditResponseDTO> history = ticketService.getTicketHistory(id, user.getOrganization().getId());
+        return ResponseEntity.ok(history);
     }
 
     @PatchMapping("/{id}")
