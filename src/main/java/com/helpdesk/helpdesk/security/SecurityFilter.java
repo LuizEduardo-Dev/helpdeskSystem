@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -30,32 +31,21 @@ public class SecurityFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        // 1. Extrair o token do cabeçalho "Authorization"
         var token = this.recoverToken(request);
 
+        // Se não tem token, a gente simplesmente passa a bola para o próximo filtro.
+        // O SecurityConfig (que configuramos com permitAll) vai decidir se deixa passar ou não.
         if (token != null) {
-            // 2. Validar o token e extrair o e-mail (subject)
             var login = tokenService.extractEmail(token);
-
             if (login != null) {
-                // 3. BUSCA NO BANCO
-                // Mesmo com o token, verificamos se o usuário ainda existe e está ativo.
                 UserDetails user = userRepository.findByEmail(login)
-                        .orElse(null);
+                        .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-                if (user != null) {
-                    // 4. Autenticar no contexto do Spring
-                    // Criamos um objeto de autenticação que o Spring entende
-                    var authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
-
-                    // Colocamos essa autenticação no "Contexto de Segurança"
-                    // A partir daqui, o Spring sabe QUEM está fazendo a requisição
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                }
+                var authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+                SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         }
 
-        // 5. Continuar a execução para o próximo filtro na corrente
         filterChain.doFilter(request, response);
     }
 
@@ -64,9 +54,7 @@ public class SecurityFilter extends OncePerRequestFilter {
      */
     private String recoverToken(HttpServletRequest request) {
         var authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return null;
-        }
+        if (authHeader == null) return null;
         return authHeader.replace("Bearer ", "");
     }
 }
