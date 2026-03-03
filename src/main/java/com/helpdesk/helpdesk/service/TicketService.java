@@ -9,8 +9,11 @@ import com.helpdesk.helpdesk.exception.AccessDeniedException;
 import com.helpdesk.helpdesk.exception.ResourceNotFoundException;
 import com.helpdesk.helpdesk.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -62,11 +65,9 @@ public class TicketService {
     }
 
     @Transactional(readOnly = true)
-    public List<TicketResponseDTO> getAllTickets(Long orgId) {
-        return ticketRepository.findAllByOrganizationId(orgId)
-                .stream()
-                .map(TicketResponseDTO::new)
-                .collect(Collectors.toList()); // Simplificado para chaining
+    public Page<TicketResponseDTO> getAllTickets(Long orgId, Integer statusId, Integer priorityId, Pageable pageable) {
+        return ticketRepository.findByFilters(orgId, statusId, priorityId, pageable)
+                .map(TicketResponseDTO::new);
     }
 
     @Transactional(readOnly = true)

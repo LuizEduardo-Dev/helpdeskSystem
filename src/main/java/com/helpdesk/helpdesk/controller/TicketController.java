@@ -6,11 +6,16 @@ import com.helpdesk.helpdesk.service.CommentService;
 import com.helpdesk.helpdesk.service.TicketService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
 
 import java.util.List;
 
@@ -37,8 +42,13 @@ public class TicketController {
     }
 
     @GetMapping
-    public ResponseEntity<List<TicketResponseDTO>> getAllTickets(@AuthenticationPrincipal User user) {
-        List<TicketResponseDTO> tickets = ticketService.getAllTickets(user.getOrganization().getId());
+    public ResponseEntity<Page<TicketResponseDTO>> getAllTickets(
+            @AuthenticationPrincipal User user,
+            @RequestParam(required = false) Integer statusId,
+            @RequestParam(required = false) Integer priorityId,
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+
+        Page<TicketResponseDTO> tickets = ticketService.getAllTickets(user.getOrganization().getId(), statusId, priorityId, pageable);
         return ResponseEntity.ok(tickets);
     }
 
