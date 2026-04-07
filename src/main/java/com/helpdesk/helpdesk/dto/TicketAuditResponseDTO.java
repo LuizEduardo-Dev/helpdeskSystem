@@ -1,6 +1,6 @@
 package com.helpdesk.helpdesk.dto;
 
-import com.helpdesk.helpdesk.domain.TicketAudit;
+import com.helpdesk.helpdesk.domain.entity.TicketAudit;
 import java.time.Instant;
 
 public record TicketAuditResponseDTO(

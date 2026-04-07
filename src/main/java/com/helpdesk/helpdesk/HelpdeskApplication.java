@@ -2,9 +2,9 @@ package com.helpdesk.helpdesk;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.web.context.WebServerInitializedEvent; // Importe este
-import org.springframework.context.event.EventListener; // Importe este
-import org.springframework.stereotype.Component; // Importe este
+import org.springframework.boot.web.context.WebServerInitializedEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
 
 @SpringBootApplication
 public class HelpdeskApplication {
@@ -24,7 +24,7 @@ public class HelpdeskApplication {
 		 */
 		@EventListener
 		public void onWebServerInitialized(WebServerInitializedEvent event) {
-			// Pegamos a porta dinamicamente, caso ela mude no futuro
+
 			int port = event.getWebServer().getPort();
 
 			// Imprimimos a mensagem customizada no console

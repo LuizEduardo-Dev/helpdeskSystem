@@ -1,6 +1,6 @@
 package com.helpdesk.helpdesk.dto;
 
-import com.helpdesk.helpdesk.domain.Ticket;
+import com.helpdesk.helpdesk.domain.entity.Ticket;
 import lombok.Data;
 
 import java.time.Instant;

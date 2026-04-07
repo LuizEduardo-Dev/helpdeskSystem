@@ -1,8 +1,11 @@
 package com.helpdesk.helpdesk.repository;
 
-import com.helpdesk.helpdesk.domain.Organization;
+import com.helpdesk.helpdesk.domain.entity.Organization;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface OrganizationRepository  extends JpaRepository<Organization, Integer> {
+import java.util.Optional;
 
+ public interface OrganizationRepository extends JpaRepository<Organization, Long> {
+
+    Optional<Organization> findByName(String name);
 }

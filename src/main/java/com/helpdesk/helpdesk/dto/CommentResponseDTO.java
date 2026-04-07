@@ -1,6 +1,6 @@
 package com.helpdesk.helpdesk.dto;
 
-import com.helpdesk.helpdesk.domain.Comment;
+import com.helpdesk.helpdesk.domain.entity.Comment;
 
 import java.time.Instant;
 

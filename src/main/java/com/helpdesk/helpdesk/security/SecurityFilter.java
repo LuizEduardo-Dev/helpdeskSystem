@@ -33,8 +33,6 @@ public class SecurityFilter extends OncePerRequestFilter {
 
         var token = this.recoverToken(request);
 
-        // Se não tem token, a gente simplesmente passa a bola para o próximo filtro.
-        // O SecurityConfig (que configuramos com permitAll) vai decidir se deixa passar ou não.
         if (token != null) {
             var login = tokenService.extractEmail(token);
             if (login != null) {

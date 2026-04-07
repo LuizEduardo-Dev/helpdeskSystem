@@ -1,6 +1,9 @@
 package com.helpdesk.helpdesk.service;
 
 import com.helpdesk.helpdesk.domain.*;
+import com.helpdesk.helpdesk.domain.entity.Ticket;
+import com.helpdesk.helpdesk.domain.entity.TicketAudit;
+import com.helpdesk.helpdesk.domain.entity.User;
 import com.helpdesk.helpdesk.dto.TicketAuditResponseDTO;
 import com.helpdesk.helpdesk.dto.TicketCreateDTO;
 import com.helpdesk.helpdesk.dto.TicketResponseDTO;

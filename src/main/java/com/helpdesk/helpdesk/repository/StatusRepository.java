@@ -1,10 +1,9 @@
 package com.helpdesk.helpdesk.repository;
 
-import com.helpdesk.helpdesk.domain.Status;
+import com.helpdesk.helpdesk.domain.entity.Status;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface StatusRepository extends JpaRepository<Status, Integer> {
-
     Optional<Status> findByName(String name);
 }

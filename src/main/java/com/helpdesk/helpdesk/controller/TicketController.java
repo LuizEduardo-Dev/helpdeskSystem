@@ -1,6 +1,6 @@
 package com.helpdesk.helpdesk.controller;
 
-import com.helpdesk.helpdesk.domain.User;
+import com.helpdesk.helpdesk.domain.entity.User;
 import com.helpdesk.helpdesk.dto.*;
 import com.helpdesk.helpdesk.service.CommentService;
 import com.helpdesk.helpdesk.service.TicketService;

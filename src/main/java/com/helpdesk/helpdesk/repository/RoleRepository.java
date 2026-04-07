@@ -1,9 +1,9 @@
 package com.helpdesk.helpdesk.repository;
 
-import com.helpdesk.helpdesk.domain.Role;
+import com.helpdesk.helpdesk.domain.entity.Role;
 import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.Optional;
 
 public interface RoleRepository extends JpaRepository<Role, Integer> {
-
+    Optional<Role> findByName(String name);
 }
-

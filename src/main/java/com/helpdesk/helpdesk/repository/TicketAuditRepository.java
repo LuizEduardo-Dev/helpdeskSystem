@@ -1,10 +1,10 @@
 package com.helpdesk.helpdesk.repository;
 
-import com.helpdesk.helpdesk.domain.TicketAudit;
+import com.helpdesk.helpdesk.domain.entity.TicketAudit;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface TicketAuditRepository extends JpaRepository<TicketAudit, Long> {
-    // No futuro, podemos listar o histórico de um ticket específico:
-    List<TicketAudit> findAllByTicketIdOrderByCreatedAtDesc(Long ticketId);
+    // Blindado com organizationId
+    List<TicketAudit> findAllByTicketIdAndOrganizationIdOrderByCreatedAtDesc(Long ticketId, Long organizationId);
 }

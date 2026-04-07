@@ -1,8 +1,8 @@
 package com.helpdesk.helpdesk.service;
 
-import com.helpdesk.helpdesk.domain.Comment;
-import com.helpdesk.helpdesk.domain.Ticket;
-import com.helpdesk.helpdesk.domain.User;
+import com.helpdesk.helpdesk.domain.entity.Comment;
+import com.helpdesk.helpdesk.domain.entity.Ticket;
+import com.helpdesk.helpdesk.domain.entity.User;
 import com.helpdesk.helpdesk.dto.CommentRequestDTO;
 import com.helpdesk.helpdesk.dto.CommentResponseDTO;
 import com.helpdesk.helpdesk.exception.ResourceNotFoundException;

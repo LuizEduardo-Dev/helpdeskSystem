@@ -1,6 +1,6 @@
 package com.helpdesk.helpdesk.controller;
 
-import com.helpdesk.helpdesk.domain.User;
+import com.helpdesk.helpdesk.domain.entity.User;
 import com.helpdesk.helpdesk.dto.LoginRequestDTO;
 import com.helpdesk.helpdesk.dto.LoginResponseDTO;
 import com.helpdesk.helpdesk.security.TokenService;
