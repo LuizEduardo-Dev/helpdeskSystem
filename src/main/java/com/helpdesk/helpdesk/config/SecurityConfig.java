@@ -1,6 +1,8 @@
 package com.helpdesk.helpdesk.config;
 
+import com.helpdesk.helpdesk.domain.entity.User;
 import com.helpdesk.helpdesk.repository.UserRepository;
+import com.helpdesk.helpdesk.security.CustomUserDetails;
 import com.helpdesk.helpdesk.security.SecurityFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -45,40 +47,40 @@ public class SecurityConfig {
                 .build();
     }
 
-    /**
-     * Bean para criptografar e verificar senhas.
-     * Estamos usando o BCrypt, que é o padrão de mercado.
-     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     /**
-     * Bean que ensina ao Spring como buscar um usuário pelo seu identificador (no nosso caso, email).
+     * O parâmetro 'compoundUsername' chegará no formato "email:organizationId"
      */
     @Bean
     public UserDetailsService userDetailsService(UserRepository userRepository) {
-        return email -> {
-            // (Isso é um lambda que implementa o método 'loadUserByUsername')
-            // O Spring Security chama o e-mail de "username", por isso o nome
-
-            // 1. Buscamos o usuário no nosso repositório
-            var user = userRepository.findByEmail(email); // Precisaremos criar este método!
-
-            // 2. Se o usuário existir, nós o retornamos em um formato que o Spring entende
-            if (user.isPresent()) {
-                return user.get(); // Agora podemos retornar o usuário direto!
-            } else {
-                throw new UsernameNotFoundException("Usuário não encontrado: " + email);
+        return compoundUsername -> {
+            // 1. Quebramos a string para separar o e-mail do ID da organização
+            String[] parts = compoundUsername.split(":");
+            if (parts.length != 2) {
+                throw new UsernameNotFoundException("Formato de login inválido. Use email:organizationId");
             }
+
+            String email = parts[0];
+            Long organizationId;
+            try {
+                organizationId = Long.parseLong(parts[1]);
+            } catch (NumberFormatException e) {
+                throw new UsernameNotFoundException("ID da Organização inválido.");
+            }
+
+            // 2. Buscamos o usuário usando nosso repositório blindado
+            User user = userRepository.findByEmailAndOrganizationId(email, organizationId)
+                    .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado para esta organização."));
+
+            // 3. Retornamos empacotado no nosso CustomUserDetails
+            return new CustomUserDetails(user);
         };
     }
 
-    /**
-     * Bean que gerencia o processo de autenticação.
-     * Nós o usaremos no nosso Controller de Login.
-     */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
@@ -93,5 +95,4 @@ public class SecurityConfig {
                 "/webjars/**"
         );
     }
-
 }

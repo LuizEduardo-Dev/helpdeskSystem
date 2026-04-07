@@ -1,5 +1,6 @@
 package com.helpdesk.helpdesk.security;
 
+import com.helpdesk.helpdesk.domain.entity.User;
 import com.helpdesk.helpdesk.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -8,7 +9,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -33,13 +33,23 @@ public class SecurityFilter extends OncePerRequestFilter {
 
         var token = this.recoverToken(request);
 
-        if (token != null) {
-            var login = tokenService.extractEmail(token);
-            if (login != null) {
-                UserDetails user = userRepository.findByEmail(login)
-                        .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        if (token != null && tokenService.isTokenValid(token)) {
 
-                var authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+            // 1. Extraímos o Email e a Organização do Token JWT
+            var email = tokenService.extractEmail(token);
+            var organizationId = tokenService.extractOrganizationId(token);
+
+            if (email != null && organizationId != null) {
+
+                // 2. Busca segura e exclusiva do Tenant!
+                User user = userRepository.findByEmailAndOrganizationId(email, organizationId)
+                        .orElseThrow(() -> new UsernameNotFoundException("User not found in this organization"));
+
+                // 3. Empacotamos na nossa classe de segurança isolada
+                CustomUserDetails userDetails = new CustomUserDetails(user);
+
+                // 4. Autenticamos no contexto do Spring
+                var authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         }
@@ -47,12 +57,9 @@ public class SecurityFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    /**
-     * Helper para extrair o token do formato "Bearer <token>"
-     */
     private String recoverToken(HttpServletRequest request) {
         var authHeader = request.getHeader("Authorization");
-        if (authHeader == null) return null;
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) return null;
         return authHeader.replace("Bearer ", "");
     }
 }

@@ -1,8 +1,8 @@
 package com.helpdesk.helpdesk.controller;
 
-import com.helpdesk.helpdesk.domain.entity.User;
 import com.helpdesk.helpdesk.dto.LoginRequestDTO;
 import com.helpdesk.helpdesk.dto.LoginResponseDTO;
+import com.helpdesk.helpdesk.security.CustomUserDetails;
 import com.helpdesk.helpdesk.security.TokenService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,21 +29,20 @@ public class AuthenticationController {
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDTO> login(@RequestBody @Valid LoginRequestDTO data) {
-        // 1. Criamos um "token" interno do Spring com as credenciais recebidas
-        var usernamePassword = new UsernamePasswordAuthenticationToken(data.email(), data.password());
 
-        // 2. O AuthenticationManager vai chamar o nosso UserDetailsService e o PasswordEncoder
-        // para verificar se o e-mail existe e se a senha (hash) bate.
+        // 1. Montamos o "Compound Username" (A Mágica do Multi-tenant)
+        String compoundUsername = data.email() + ":" + data.organizationId();
+
+        // 2. Passamos para o Spring validar
+        var usernamePassword = new UsernamePasswordAuthenticationToken(compoundUsername, data.password());
         var auth = this.authenticationManager.authenticate(usernamePassword);
 
-        // 3. Se a autenticação falhar, o Spring lança uma exceção automaticamente aqui.
-        // Se passar, pegamos o usuário autenticado.
-        var user = (User) auth.getPrincipal();
+        // 3. Pegamos o principal (Agora é o nosso CustomUserDetails)
+        var userDetails = (CustomUserDetails) auth.getPrincipal();
 
-        // 4. Geramos o nosso Token JWT para o usuário
-        var token = tokenService.generateToken(user);
+        // 4. Extraímos a entidade real do banco de dentro do CustomUserDetails para gerar o token
+        var token = tokenService.generateToken(userDetails.getUser());
 
-        // 5. Devolvemos o token no corpo da resposta
         return ResponseEntity.ok(new LoginResponseDTO(token));
     }
 }

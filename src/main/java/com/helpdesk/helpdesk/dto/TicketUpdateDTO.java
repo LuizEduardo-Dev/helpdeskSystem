@@ -1,10 +1,6 @@
 package com.helpdesk.helpdesk.dto;
 
-import lombok.Data;
-
-@Data
-public class TicketUpdateDTO {
-
-    private Integer statusId;
-    private Long assignedToId;
-}
+public record TicketUpdateDTO(
+        Integer statusId,
+        Long assignedToId
+) {}

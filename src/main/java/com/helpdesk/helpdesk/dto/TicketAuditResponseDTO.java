@@ -1,7 +1,7 @@
 package com.helpdesk.helpdesk.dto;
 
 import com.helpdesk.helpdesk.domain.entity.TicketAudit;
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 public record TicketAuditResponseDTO(
         Long id,
@@ -9,7 +9,7 @@ public record TicketAuditResponseDTO(
         String oldValue,
         String newValue,
         String changedByEmail,
-        Instant createdAt
+        LocalDateTime createdAt
 ) {
     public TicketAuditResponseDTO(TicketAudit audit) {
         this(

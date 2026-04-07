@@ -1,6 +1,7 @@
 package com.helpdesk.helpdesk.service;
 
-import com.helpdesk.helpdesk.domain.*;
+import com.helpdesk.helpdesk.domain.entity.Priority;
+import com.helpdesk.helpdesk.domain.entity.Status;
 import com.helpdesk.helpdesk.domain.entity.Ticket;
 import com.helpdesk.helpdesk.domain.entity.TicketAudit;
 import com.helpdesk.helpdesk.domain.entity.User;
@@ -43,25 +44,20 @@ public class TicketService {
     }
 
     @Transactional
-    public TicketResponseDTO createTicket(TicketCreateDTO createDTO, Long creatingUserId) {
-
-        // 1. Correção: Trocado RuntimeException por ResourceNotFoundException
-        User creatingUser = userRepository.findById(creatingUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado com ID: " + creatingUserId));
-
-        Priority priority = priorityRepository.findById(createDTO.getPriorityId())
-                .orElseThrow(() -> new ResourceNotFoundException("Prioridade não encontrada com ID: " + createDTO.getPriorityId()));
+    public TicketResponseDTO createTicket(TicketCreateDTO createDTO, User creatingUser) {
+        Priority priority = priorityRepository.findById(createDTO.priorityId())
+                .orElseThrow(() -> new ResourceNotFoundException("Prioridade não encontrada."));
 
         Status openStatus = statusRepository.findByName("Aberto")
-                .orElseThrow(() -> new ResourceNotFoundException("Status padrão 'Aberto' não configurado no sistema."));
+                .orElseThrow(() -> new ResourceNotFoundException("Status padrão 'Aberto' não encontrado."));
 
         Ticket newTicket = new Ticket();
-        newTicket.setTitle(createDTO.getTitle());
-        newTicket.setDescription(createDTO.getDescription());
+        newTicket.setTitle(createDTO.title());
+        newTicket.setDescription(createDTO.description());
         newTicket.setPriority(priority);
         newTicket.setStatus(openStatus);
         newTicket.setCreatedBy(creatingUser);
-        newTicket.setOrganization(creatingUser.getOrganization());
+        newTicket.setOrganization(creatingUser.getOrganization()); // Proteção multi-tenant
 
         Ticket savedTicket = ticketRepository.save(newTicket);
         return new TicketResponseDTO(savedTicket);
@@ -82,39 +78,40 @@ public class TicketService {
 
     @Transactional
     public TicketResponseDTO updateTicket(Long ticketId, TicketUpdateDTO updateDTO, User updatingUser) {
-
-        if (!"ROLE_TECH".equals(updatingUser.getRole().getName())) {
-            throw new AccessDeniedException("Somente técnicos podem atualizar chamados.");
-        }
-
         Ticket ticket = ticketRepository.findByIdAndOrganizationId(ticketId, updatingUser.getOrganization().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket não encontrado ou acesso negado."));
 
-        // 2. Lógica de Auditoria para STATUS
-        if (updateDTO.getStatusId() != null) {
-            String oldStatusName = ticket.getStatus().getName(); // Captura o valor antigo
+        // 1. Atualização de Status
+        if (updateDTO.statusId() != null) {
+            String oldStatusName = ticket.getStatus().getName();
 
-            Status newStatus = statusRepository.findById(updateDTO.getStatusId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Status " + updateDTO.getStatusId() + " não encontrado."));
+            Status newStatus = statusRepository.findById(updateDTO.statusId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Status não encontrado."));
 
-            System.out.println("DEBUG: Tentando auditar. Antigo: " + oldStatusName + " | Novo: " + newStatus.getName());
-
-            // Só audita se o valor realmente mudou
             if (!oldStatusName.equals(newStatus.getName())) {
                 ticket.setStatus(newStatus);
                 saveAudit(ticket, updatingUser, "status", oldStatusName, newStatus.getName());
             }
         }
 
-        // 3. Lógica de Auditoria para ASSIGNED_TO (Técnico Atribuído)
-        if (updateDTO.getAssignedToId() != null) {
+        // 2. Lógica de Atribuição (Regra de Negócio: Somente ADMIN)
+        if (updateDTO.assignedToId() != null) {
+            if (!"ROLE_ADMIN".equals(updatingUser.getRole().getName())) {
+                throw new AccessDeniedException("Apenas administradores podem distribuir chamados.");
+            }
+
             String oldAssignedEmail = (ticket.getAssignedTo() != null) ? ticket.getAssignedTo().getEmail() : "Nenhum";
 
-            User assignedUser = userRepository.findById(updateDTO.getAssignedToId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Técnico " + updateDTO.getAssignedToId() + " não encontrado."));
+            User assignedUser = userRepository.findById(updateDTO.assignedToId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Técnico não encontrado."));
 
             if (!"ROLE_TECH".equals(assignedUser.getRole().getName())) {
-                throw new AccessDeniedException("Erro: Só é possível atribuir chamados a técnicos.");
+                throw new IllegalArgumentException("Só é possível atribuir chamados a técnicos.");
+            }
+
+            // Evita "roubo" de chamados acidental
+            if (ticket.getAssignedTo() != null && !ticket.getAssignedTo().getId().equals(assignedUser.getId())) {
+                throw new IllegalArgumentException("Este chamado já está atribuído. Remova a atribuição atual antes de transferir.");
             }
 
             if (!oldAssignedEmail.equals(assignedUser.getEmail())) {
@@ -128,21 +125,20 @@ public class TicketService {
 
     @Transactional(readOnly = true)
     public List<TicketAuditResponseDTO> getTicketHistory(Long ticketId, Long orgId) {
-        // Garantimos que o ticket pertence à organização do usuário logado
-        ticketRepository.findByIdAndOrganizationId(ticketId, orgId)
-                .orElseThrow(() -> new ResourceNotFoundException("Ticket não encontrado nesta organização."));
-
-        // Buscamos as auditorias ordenadas pela mais recente
-        return auditRepository.findAllByTicketIdOrderByCreatedAtDesc(ticketId)
+        return auditRepository.findAllByTicketIdAndOrganizationIdOrderByCreatedAtDesc(ticketId, orgId)
                 .stream()
                 .map(TicketAuditResponseDTO::new)
                 .collect(Collectors.toList());
     }
 
-
     private void saveAudit(Ticket ticket, User user, String field, String oldValue, String newValue) {
-        System.out.println("DEBUG: Salvando auditoria no banco...");
-        TicketAudit audit = new TicketAudit(ticket, user, field, oldValue, newValue);
+        TicketAudit audit = new TicketAudit();
+        audit.setTicket(ticket);
+        audit.setOrganization(ticket.getOrganization()); // FK Composta
+        audit.setChangedBy(user);
+        audit.setFieldName(field);
+        audit.setOldValue(oldValue);
+        audit.setNewValue(newValue);
         auditRepository.save(audit);
     }
 }

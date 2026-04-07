@@ -4,5 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 
 public record CommentRequestDTO(
         @NotBlank(message = "O conteúdo do comentário não pode estar vazio.")
-        String content
+        String content,
+
+        Boolean isInternal
 ) {}

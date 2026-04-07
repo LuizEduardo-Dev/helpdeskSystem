@@ -50,6 +50,11 @@ public class TokenService {
         return extractClaim(token, Claims::getSubject);
     }
 
+    public Long extractOrganizationId(String token) {
+        // Puxa a claim "organizationId" convertendo para Long
+        return extractClaim(token, claims -> claims.get("organizationId", Long.class));
+    }
+
     public boolean isTokenValid(String token) {
         try {
             // O próprio parser já valida assinatura e expiração.
