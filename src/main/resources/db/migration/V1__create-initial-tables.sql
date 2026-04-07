@@ -50,7 +50,7 @@ CREATE TABLE tickets (
   description     TEXT NOT NULL,
   priority_id     INT NOT NULL REFERENCES priorities(id),
   status_id       INT NOT NULL REFERENCES statuses(id),
-
+  version         BIGINT NOT NULL DEFAULT 0, -- Para controle de concorrência otimista
   -- FK Composta. Garante que o criador pertence à MESMA organização do ticket
   created_by      BIGINT NOT NULL,
   FOREIGN KEY (created_by, organization_id) REFERENCES users(id, organization_id),

@@ -33,7 +33,7 @@ public class TicketController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('USER', 'TECH', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_TECH', 'ROLE_ADMIN')")
     public ResponseEntity<TicketResponseDTO> createTicket(
             @Valid @RequestBody TicketCreateDTO dto,
             @AuthenticationPrincipal CustomUserDetails userDetails) { // Alterado o tipo!
@@ -78,7 +78,7 @@ public class TicketController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('TECH', 'ADMIN')") // Admin precisa acessar para distribuir!
+    @PreAuthorize("hasAnyAuthority('ROLE_TECH', 'ROLE_ADMIN')") // Admin precisa acessar para distribuir!
     public ResponseEntity<TicketResponseDTO> updateTicket(
             @PathVariable Long id,
             @RequestBody TicketUpdateDTO updateDTO,
@@ -92,7 +92,7 @@ public class TicketController {
     // --- COMENTÁRIOS ---
 
     @PostMapping("/{id}/comments")
-    @PreAuthorize("hasAnyRole('USER', 'TECH', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_TECH', 'ROLE_ADMIN')")
     public ResponseEntity<CommentResponseDTO> addComment(
             @PathVariable Long id,
             @Valid @RequestBody CommentRequestDTO requestDTO,
@@ -104,7 +104,7 @@ public class TicketController {
     }
 
     @GetMapping("/{id}/comments")
-    @PreAuthorize("hasAnyRole('USER', 'TECH', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_TECH', 'ROLE_ADMIN')")
     public ResponseEntity<List<CommentResponseDTO>> getComments(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails) {

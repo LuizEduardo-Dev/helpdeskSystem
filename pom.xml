@@ -150,6 +150,16 @@
 					<propertiesEncoding>UTF-8</propertiesEncoding>
 				</configuration>
 			</plugin>
+<!--			<plugin>-->
+<!--				<groupId>org.flywaydb</groupId>-->
+<!--				<artifactId>flyway-maven-plugin</artifactId>-->
+<!--				<version>9.22.0</version>-->
+<!--				<configuration>-->
+<!--					<url>jdbc:postgresql://localhost:5432/helpdesk_db</url>-->
+<!--					<user>postgres</user>-->
+<!--					<password>Ps9278</password>-->
+<!--				</configuration>-->
+<!--			</plugin>-->
 		</plugins>
 	</build>
 

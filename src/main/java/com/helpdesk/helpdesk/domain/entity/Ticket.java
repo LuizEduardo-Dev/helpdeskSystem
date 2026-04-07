@@ -38,19 +38,14 @@ public class Ticket {
     private Priority priority;
 
 
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumns({
-            @JoinColumn(name = "created_by", referencedColumnName = "id"),
-            @JoinColumn(name = "organization_id", referencedColumnName = "organization_id", insertable = false, updatable = false)
-    })
+    @JoinColumn(name = "created_by", nullable = false)
     private User createdBy;
 
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumns({
-            @JoinColumn(name = "assigned_to", referencedColumnName = "id"),
-            @JoinColumn(name = "organization_id", referencedColumnName = "organization_id", insertable = false, updatable = false)
-    })
+    @JoinColumn(name = "assigned_to")
     private User assignedTo;
 
 

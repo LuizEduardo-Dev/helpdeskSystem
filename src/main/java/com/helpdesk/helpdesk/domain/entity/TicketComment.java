@@ -29,10 +29,7 @@ public class TicketComment {
 
     // 2. A FK Composta! (Garante que o User pertence à mesma Organization)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumns({
-            @JoinColumn(name = "user_id", referencedColumnName = "id"),
-            @JoinColumn(name = "organization_id", referencedColumnName = "organization_id", insertable = false, updatable = false)
-    })
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @Column(columnDefinition = "TEXT", nullable = false)

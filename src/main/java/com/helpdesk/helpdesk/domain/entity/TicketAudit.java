@@ -34,12 +34,8 @@ public class TicketAudit {
     @Column(name = "new_value", columnDefinition = "TEXT")
     private String newValue;
 
-    
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumns({
-            @JoinColumn(name = "changed_by", referencedColumnName = "id"),
-            @JoinColumn(name = "organization_id", referencedColumnName = "organization_id", insertable = false, updatable = false)
-    })
+    @JoinColumn(name = "changed_by", nullable = false)
     private User changedBy;
 
   

@@ -51,8 +51,9 @@ public class TokenService {
     }
 
     public Long extractOrganizationId(String token) {
-        // Puxa a claim "organizationId" convertendo para Long
-        return extractClaim(token, claims -> claims.get("organizationId", Long.class));
+
+        Number orgId = extractClaim(token, claims -> claims.get("organizationId", Number.class));
+        return orgId != null ? orgId.longValue() : null;
     }
 
     public boolean isTokenValid(String token) {

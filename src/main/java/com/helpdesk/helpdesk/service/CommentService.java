@@ -39,7 +39,7 @@ public class CommentService {
         TicketComment comment = new TicketComment();
         comment.setTicket(ticket);
         comment.setUser(user);
-        comment.setOrganization(user.getOrganization()); // FK Composta obriga isso!
+        comment.setOrganization(user.getOrganization());
         comment.setContent(dto.content());
         comment.setIsInternal(isInternal);
 
@@ -50,10 +50,19 @@ public class CommentService {
 
     @Transactional(readOnly = true)
     public List<CommentResponseDTO> getCommentsByTicket(Long ticketId, User user) {
-        // Busca duplamente blindada (Ticket + Organização)
-        return commentRepository.findAllByTicketIdAndOrganizationIdOrderByCreatedAtAsc(ticketId, user.getOrganization().getId())
-                .stream()
-                // Aqui no futuro adicionaremos um filtro: se for ROLE_USER, filter(c -> !c.getIsInternal())
+
+        List<TicketComment> comments = commentRepository.findAllByTicketIdAndOrganizationIdOrderByCreatedAtAsc(ticketId, user.getOrganization().getId());
+
+
+        if ("ROLE_USER".equals(user.getRole().getName())) {
+            return comments.stream()
+                    .filter(c -> !c.getIsInternal())
+                    .map(CommentResponseDTO::new)
+                    .toList();
+        }
+
+
+        return comments.stream()
                 .map(CommentResponseDTO::new)
                 .toList();
     }
