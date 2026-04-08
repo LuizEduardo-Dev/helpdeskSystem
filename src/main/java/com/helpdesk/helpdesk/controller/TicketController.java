@@ -113,4 +113,28 @@ public class TicketController {
         List<CommentResponseDTO> comments = commentService.getCommentsByTicket(id, user);
         return ResponseEntity.ok(comments);
     }
+
+    // Rota: GET /api/v1/tickets/queue/unassigned
+    @GetMapping("/queue/unassigned")
+    @PreAuthorize("hasAnyAuthority('ROLE_TECH', 'ROLE_ADMIN')")
+    public ResponseEntity<List<TicketResponseDTO>> getUnassignedQueue(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        User user = userDetails.getUser();
+        List<TicketResponseDTO> queue = ticketService.getUnassignedTickets(user.getOrganization().getId());
+        return ResponseEntity.ok(queue);
+    }
+
+    // Rota: GET /api/v1/tickets/queue/me
+    @GetMapping("/queue/me")
+    @PreAuthorize("hasAnyAuthority('ROLE_TECH')")
+    public ResponseEntity<List<TicketResponseDTO>> getMyQueue(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        User user = userDetails.getUser();
+        // Passamos o ID do técnico logado e o ID da empresa dele
+        List<TicketResponseDTO> myTickets = ticketService.getMyAssignedTickets(user.getId(), user.getOrganization().getId());
+        return ResponseEntity.ok(myTickets);
+    }
+
 }

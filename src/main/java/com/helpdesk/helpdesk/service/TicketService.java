@@ -131,6 +131,22 @@ public class TicketService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<TicketResponseDTO> getUnassignedTickets(Long orgId) {
+        return ticketRepository.findAllByOrganizationIdAndAssignedToIsNull(orgId)
+                .stream()
+                .map(TicketResponseDTO::new)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<TicketResponseDTO> getMyAssignedTickets(Long techId, Long orgId) {
+        return ticketRepository.findAllByOrganizationIdAndAssignedToId(orgId, techId)
+                .stream()
+                .map(TicketResponseDTO::new)
+                .collect(Collectors.toList());
+    }
+
     private void saveAudit(Ticket ticket, User user, String field, String oldValue, String newValue) {
         TicketAudit audit = new TicketAudit();
         audit.setTicket(ticket);
